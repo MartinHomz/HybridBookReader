@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HybridBookReader.Views.HomeView"
+             xmlns:viewmodel="clr-namespace:HybridBookReader.ViewModels"
+             xmlns:model="clr-namespace:HybridBookReader.Models"
+             x:DataType="viewmodel:HomeViewModel"
+             Title="{Binding LocalizationManager[Home], Mode=OneWay}">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Command="{Binding ReadBookCommand}" Text="{Binding LocalizationManager[Read], Mode=OneWay}" IconImageSource="read.png"/>
+        <ToolbarItem Command="{Binding AddBookCommand}" Text="{Binding LocalizationManager[Add], Mode=OneWay}" IconImageSource="add.png"/>
+        <ToolbarItem Command="{Binding DeleteBookCommand}" Text="{Binding LocalizationManager[Delete], Mode=OneWay}" IconImageSource="remove.png"/>
+    </ContentPage.ToolbarItems>
+    <ScrollView>
+        <CollectionView ItemsSource="{Binding Library}"
+                        SelectionMode="Single"
+                        SelectionChanged="CollectionView_SelectionChanged">
+
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout Orientation="Vertical" Span="3"/>
+            </CollectionView.ItemsLayout>
+            
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="model:Book">
+                    <VerticalStackLayout HeightRequest="260" WidthRequest="150" Padding="10">
+                        <Frame Padding="0" 
+                               BackgroundColor="Transparent"
+                               CornerRadius="0">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                        Tapped="TapGestureRecognizer_Tapped" NumberOfTapsRequired="2"/>
+                            </Frame.GestureRecognizers>
+                            <VerticalStackLayout>
+                                <Frame Padding="0" 
+                               BorderColor="Gray" 
+                               CornerRadius="8">
+                                    <Image Source="{Binding CoverImagePath}" Aspect="Fill"/>
+                                </Frame>
+                                <Label Text="{Binding Title}" Margin="0,10,0,0" FontSize="14" HorizontalTextAlignment="Center"/>
+                            </VerticalStackLayout>
+                        </Frame>
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,54 @@
+﻿@using HybridBookReader.Models;
+@if (WordDictionary != null || !string.IsNullOrEmpty(ErrorText))
+{
+    <div class="Dictionary-inner">
+        <Button CssClass="Dictionary-closeButton" Click="Close">&times;</Button>
+        @if (!string.IsNullOrEmpty(ErrorText))
+        {
+            <div>@localizer["Error"]</div>
+            <div>@ErrorText</div>
+        }
+        else
+        {
+            <h3>@WordDictionary.Word</h3>
+            @if (WordDictionary.Meanings != null && WordDictionary.Meanings.Count > 0)
+            {
+                <h4>@localizer["Meaning"]:</h4>
+
+                @foreach (Meaning meaning in WordDictionary.Meanings)
+                {
+                    @if (!string.IsNullOrEmpty(meaning.PartOfSpeech))
+                    {
+                        <h5>@localizer["PartOfSpeech"]: @meaning.PartOfSpeech</h5>
+                    }
+                    @if (!string.IsNullOrEmpty(meaning.Synonyms))
+                    {
+                        <h5>@localizer["Synonym"]: @meaning.Synonyms</h5>
+                    }
+                    @if (!string.IsNullOrEmpty(meaning.Antonyms))
+                    {
+                        <h5>@localizer["Antonym"]: @meaning.Antonyms</h5>
+                    }
+                    @if (meaning.Definitions != null && meaning.Definitions.Count > 0)
+                    {
+                        <h6>@localizer["Definition"]:</h6>
+                        @foreach (Definition def in meaning.Definitions)
+                        {
+                            <ul>
+                                <li>@def.InnerDefinition: @def.Example</li>
+                            </ul>
+                        }
+                    }
+                }
+            }
+        }
+    </div>
+}
+
+@code {
+    [Inject] private IStringLocalizer<Localization> localizer { get; set; }
+
+    [Parameter] public WordDictionary WordDictionary { get; set; } = null;
+    [Parameter] public string ErrorText { get; set; }
+    [Parameter] public Action Close { get; set; }
+}

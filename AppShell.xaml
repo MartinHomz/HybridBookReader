@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Shell
+    x:Class="HybridBookReader.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:view="clr-namespace:HybridBookReader.Views">
+
+    <Shell.FlyoutHeader>
+        <Grid HeightRequest="100" BackgroundColor="#037cd3">
+            <Image Source="read.png"/>
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <FlyoutItem Title="{Binding LocalizationManager[Home]}">
+        <ShellContent ContentTemplate="{DataTemplate view:HomeView}" />
+    </FlyoutItem>
+    <FlyoutItem Title="{Binding LocalizationManager[Library]}">
+        <ShellContent ContentTemplate="{DataTemplate view:LibraryView}"/>
+    </FlyoutItem>
+    <FlyoutItem Title="{Binding LocalizationManager[Settings]}">
+        <ShellContent ContentTemplate="{DataTemplate view:SettingsView}"/>
+    </FlyoutItem>
+</Shell>

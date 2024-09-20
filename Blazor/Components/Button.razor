@@ -1,0 +1,16 @@
+﻿<button type="button" class="Button @CssClass" id="@Id" @onclick="@ClickInternal">
+    @ChildContent
+    </button>
+
+@code {
+    [Parameter] public string Id { get; set; } = $"Component{Guid.NewGuid()}";
+    [Parameter] public RenderFragment ChildContent { get; set; }
+    [Parameter] public string CssClass { get; set; }
+    [Parameter] public EventCallback Click { get; set; }
+
+    private async Task ClickInternal(MouseEventArgs args)
+    {
+        if (Click.HasDelegate)
+            await Click.InvokeAsync();
+    }
+}

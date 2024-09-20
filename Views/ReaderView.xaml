@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HybridBookReader.Views.ReaderView"
+             xmlns:blazor="clr-namespace:HybridBookReader.Blazor.Pages"
+             xmlns:viewmodel="clr-namespace:HybridBookReader.ViewModels"
+             xmlns:model="clr-namespace:HybridBookReader.Models"
+             x:DataType="viewmodel:ReaderViewModel"
+             Title="{Binding SelectedBook.Title}">
+    <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
+        <BlazorWebView.RootComponents>
+            <RootComponent Selector="#app" ComponentType="{x:Type blazor:ReaderView}" />
+        </BlazorWebView.RootComponents>
+    </BlazorWebView>
+</ContentPage>

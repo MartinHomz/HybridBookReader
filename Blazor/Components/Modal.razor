@@ -1,0 +1,25 @@
+﻿@if (_visible)
+{
+    <div class="Modal">
+        <div class="Modal-content">
+            <span class="Modal-close" @onclick="() => _visible = false">&times;</span>
+            <div class="Modal-header">@Header</div>
+            <div class="Modal-body">
+                @ChildContent
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Header { get; set; }
+    [Parameter] public RenderFragment ChildContent { get; set; }
+
+    private bool _visible { get; set; } = false;
+
+    public void Show()
+    {
+        _visible = true;
+        StateHasChanged();
+    }
+}

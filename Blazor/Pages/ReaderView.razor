@@ -1,0 +1,195 @@
+﻿@page "/ReaderView"
+@using HybridBookReader.Helpers;
+@using HybridBookReader.Models;
+@using System.Text.Json;
+@using System.Text.RegularExpressions;
+
+@implements IAsyncDisposable
+
+<div class="BookContainer">
+    <div class="Header">
+        <Button Click="ShowSettings">@localizer["Settings"]</Button>
+        <Button Click="ShowBookmarks">@localizer["Bookmarks"]</Button>
+        <Button Click="AddBookmark">@localizer["AddBookmark"]</Button>
+    </div>
+    <div class="Reader">
+        <div id="viewer" class="spreads"></div>
+    </div>
+    <div class="Dictionary">
+        <Dictionary WordDictionary="wordDictionary" ErrorText="@dictionaryError" Close="CloseDictionary" />
+    </div>
+    <div class="Controls">
+        <a id="prev" href="#prev" class="arrow">‹</a>
+        <div class="Controls-progress">
+            <span>@App.StateManager.CurrentBook.CurrentPage / @App.StateManager.CurrentBook.PagesCount</span>
+            <span>@App.StateManager.CurrentBook.PercentageProgressAsText</span>
+        </div>
+        <a id="next" href="#next" class="arrow">›</a>
+    </div>
+</div>
+
+<Modal @ref="_settingsModal" Header="@localizer["Chapter"]">
+    <div>
+        <h4>Velikost písma:</h4>
+        <div class="Settings-section">
+            <Button Click='() => SetFontSize("60%")' CssClass="SetttingsButton">60%</Button>
+            <Button Click='() => SetFontSize("80%")' CssClass="SetttingsButton">80%</Button>
+            <Button Click='() => SetFontSize("100%")' CssClass="SetttingsButton">100%</Button>
+            <Button Click='() => SetFontSize("120%")' CssClass="SetttingsButton">120%</Button>
+            <Button Click='() => SetFontSize("140%")' CssClass="SetttingsButton">140%</Button>
+        </div>
+        <h4>Barva písma a pozadí:</h4>
+        <div class="Settings-section">
+            <Button Click='() => SetColorTheme("FgBlackBgWhite")' CssClass="SetttingsButton">Text: @localizer["Black"], @localizer["Background"]: @localizer["White"]</Button>
+            <Button Click='() => SetColorTheme("FgRedBgWhite")' CssClass="SetttingsButton">Text: @localizer["Red"], @localizer["Background"]: @localizer["White"]</Button>
+            <Button Click='() => SetColorTheme("FgBlueBgWhite")' CssClass="SetttingsButton">Text: @localizer["Blue"], @localizer["Background"]: @localizer["White"]</Button>
+            <Button Click='() => SetColorTheme("FgBlueBgBlack")' CssClass="SetttingsButton">Text: @localizer["Blue"], @localizer["Background"]: @localizer["Black"]</Button>
+            <Button Click='() => SetColorTheme("FgWhiteBgBlack")' CssClass="SetttingsButton">Text: @localizer["White"], @localizer["Background"]: @localizer["Black"]</Button>
+        </div>
+    </div>
+</Modal>
+
+<Modal @ref="_bookmarksModal" Header="@localizer["Bookmark"]">
+    <div class="BookmarksList">
+        @foreach (Bookmark mark in _bookmarks)
+        {
+            <div class="Bookmark">
+                <div>@mark.CFIPosition</div>
+                <Button Click="async () => await ChangePositionToBookmark(mark.CFIPosition)">@localizer["ChangePosToBookmark"]</Button>
+                <Button Click="async () => await DeleteBookmark(mark.BookmarkId)">@localizer["Delete"]</Button>
+            </div>
+        }
+    </div>
+</Modal>
+
+@code {
+    [Inject] private IJSRuntime js { get; set; }
+    [Inject] private IStringLocalizer<Localization> localizer { get; set; }
+
+    private IJSObjectReference _module;
+    private WordDictionary wordDictionary = null;
+    private string dictionaryError;
+
+    private Modal _settingsModal;
+    private Modal _bookmarksModal;
+
+    private List<Bookmark> _bookmarks = new List<Bookmark>();
+
+    private const string fontSizePref = "readerFontSize";
+    private const string themePref = "readerTheme";
+
+    #region Životní cyklus
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBookmarks();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await js.InvokeAsync<IJSObjectReference>("import", "./js/reader.js?v=1");
+
+            DotNetObjectReference<ReaderView> objRef = DotNetObjectReference.Create(this);
+            await _module.InvokeVoidAsync("registerBlazorReference", objRef);
+
+            byte[] bookArray = App.StateManager.CurrentBookToByteArray();
+            string fontSize = Preferences.Get(fontSizePref, "100%");
+            string theme = Preferences.Get(themePref, "FgBlackBgWhite");
+            await _module.InvokeVoidAsync("initReader", bookArray, App.StateManager.CurrentBook.CFIPosition, fontSize, theme);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+            await _module.DisposeAsync();
+    }
+    #endregion Životní cyklus
+
+    #region JSInvokable
+    [JSInvokable]
+    public void LocationChanged(string cfiPosition, int pagesCount, int currentPage)
+    {
+        if (pagesCount > 0)
+        {
+            App.StateManager.CurrentBook.CFIPosition = cfiPosition;
+            App.StateManager.CurrentBook.PagesCount = pagesCount;
+            App.StateManager.CurrentBook.CurrentPage = currentPage;
+            StateHasChanged();
+        }
+    }
+
+    [JSInvokable]
+    public async Task ShowWordDictionary(string word)
+    {
+        var oneWord = Regex.Replace(word.Split()[0], @"[^0-9a-zA-Z\ ]+", "");
+        (wordDictionary, dictionaryError) = await App.DataManager.GetWordDefinitionFromDictionary(oneWord);
+        StateHasChanged();
+    }
+    #endregion JSInvokable
+
+    #region Ovládání
+    private void CloseDictionary()
+    {
+        wordDictionary = null;
+        dictionaryError = "";
+        StateHasChanged();
+    }
+
+    private void ShowBookmarks()
+    {
+        _bookmarksModal.Show();
+    }
+
+    private async Task AddBookmark()
+    {
+        Bookmark bookmark = new Bookmark
+            {
+                BookId = App.StateManager.CurrentBook.BookId,
+                CFIPosition = App.StateManager.CurrentBook.CFIPosition
+            };
+
+        await App.DataManager.InsertBookmarkToDb(bookmark);
+        await LoadBookmarks();
+        StateHasChanged();
+        await UIHelper.ShowBookmarkAddedToast();
+    }
+
+    private async Task DeleteBookmark(int bookmarkId)
+    {
+        await App.DataManager.DeleteBookmarkFromDb(bookmarkId);
+        await LoadBookmarks();
+        StateHasChanged();
+        await UIHelper.ShowBookmarkDeletedToast();
+    }
+
+    private async Task ChangePositionToBookmark(string cfiPosition)
+    {
+        await _module.InvokeVoidAsync("changePosition", cfiPosition);
+    }
+
+    private void ShowSettings()
+    {
+        _settingsModal.Show();
+    }
+
+    private async Task SetFontSize(string fontSize)
+    {
+        Preferences.Set(fontSizePref, fontSize);
+        await _module.InvokeVoidAsync("setFontSize", fontSize);
+    }
+
+    private async Task SetColorTheme(string theme)
+    {
+        Preferences.Set(themePref, theme);
+        await _module.InvokeVoidAsync("setColorTheme", theme);
+    }
+    #endregion Ovládání
+
+    private async Task LoadBookmarks()
+    {
+        _bookmarks = await App.DataManager.GetBookmarksByBookIdFromDb(App.StateManager.CurrentBook.BookId);
+    }
+}
